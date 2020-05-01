@@ -15,6 +15,7 @@ function Square(props) {
         );
 }
 
+
 class Board extends React.Component {
 
   renderSquare(i) {
@@ -56,47 +57,83 @@ class Game extends React.Component {
         history: [{
             squares: Array(9).fill(null),
         }],
+        stepNumber: 0 ,
         xIsNext: true,
     };
   }
 
   handleClick(i){
-    const history = this.state.history;
+    const history = this.state.history.slice(0, this.state.stepNumber +1);
     const mostRecentTurn = history[history.length -1]; // slice() with no args returns a copy
     const boardAtCurrentTurn = mostRecentTurn.squares.slice();
 
     // Early termination for performance: winner/end-of-game or spot taken
-    if(calculateTurnResult(boardAtCurrentTurn) ||  boardAtCurrentTurn[i]){
+    if(calculateWinner(boardAtCurrentTurn) ||  boardAtCurrentTurn[i]){
         return;
     }
 
+
+
+    // Update state and save a move history
     boardAtCurrentTurn[i] = this.state.xIsNext ? 'X':'O';
     this.setState({
         history: history.concat( //Unlike the array push() method, concat() doesn’t mutate the original array, so we prefer it.
             [{ squares: boardAtCurrentTurn}]
         ),
+        stepNumber: history.length,
         xIsNext: !this.state.xIsNext,
     });
   }
 
-  jumpTo(moveCount){
-
-
-
+  jumpTo(step){
+    this.setState({
+        stepNumber: step,
+        xIsNext: (step % 2) ===0
+    });
   }
 
+  resetGame(currentSquares){
+    //reset state
+    this.setState({ // NEED to use  'this.setState(..)'. 'this.state=..' will not immediatly force a rerender
+        history: [{
+            squares: Array(9).fill(null),
+        }],
+        stepNumber: 0 ,
+        xIsNext: true,
+    });
+  }
+
+  determineTurnStatus(winner, xIsNext, currentBoardState){
+
+    let outputText = ''
+
+    let isDraw =  !currentBoardState.includes(null);
+
+    if(isDraw){
+        outputText =  `Draw: No Winner`
+    } else{
+    outputText =  winner ? `${resultText}`: `Next player: ${ this.state.xIsNext ? 'X':'O'}`;
+    }
+
+    return outputText
+
+    }
 
   render() {
 
     const history = this.state.history
-    const currentBoardState = history[history.length -1]
-    const resultText = calculateTurnResult(currentBoardState.squares);
+    const currentBoardState = history[this.state.stepNumber]
+    const winner = calculateWinner(currentBoardState.squares);
 
-    const status = resultText ? `${resultText}`: `Next player: ${ this.state.xIsNext ? 'X':'O'}`;
 
-    const moves = history.map((step,move) =>{
-        const description = move ? `Go to move # ${move}`:'Go to game start';
-        return (<li key={move}><button onClick={() => this.jumpTo(move)}>{description}</button></li>)
+
+    const status = determineTurnStatus(winner,this.state.xIsNext, currentBoardState)`;
+
+    const moves = history.map((step,move) =>{  // (record, index, array)
+//
+
+        let description =
+        return <li key={move}><button onClick={() => this.jumpTo(move)}>{description}</button></li>
     })
 
     return (
@@ -114,12 +151,15 @@ class Game extends React.Component {
           <div>{status}</div>
           <ol>{moves}</ol>
         </div>
+        <div>
+            <button onClick={() => this.resetGame(currentBoardState.squares) }>Reset Game</button>
+        </div>
       </div>
     );
   }
 }
 
-function calculateTurnResult(currentSquares) {
+function calculateWinner(currentSquares) {
   const winningLines = [
     [0, 1, 2], // top across
     [3, 4, 5], // middle across
@@ -142,13 +182,14 @@ function calculateTurnResult(currentSquares) {
         && currentSquares[a] === currentSquares[c]) {
 
       hasWinner = true;
+      alert(`Winner at position ${a}, ${b}, ${c}.`);
       return `Winner: ${currentSquares[a]}`;
     }
-
-    let isDraw = !hasWinner && !currentSquares.includes(null);
-    if(isDraw){
-        return `Draw: No Winner`
-    }
+//    let isDraw =  !currentSquares.includes(null);
+//    if(isDraw){
+////     alert(`All Spacess filled ${!currentSquares.includes(null)}`)
+//        return `Draw: No Winner`
+//    }
   }
   return null; // no winner
 }
